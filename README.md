@@ -10,6 +10,7 @@ A production-grade **Market Microstructure Simulator** with a high-performance C
 ## 🚀 Features
 
 - **High-Performance C++ Engine**: O(log N) order book operations with price-time priority matching
+- **Interactive Web Dashboard**: Real-time simulation control, live charts, and performance monitoring
 - **Python API**: Clean, pandas-compatible interface for strategy development and analysis
 - **Multiple Agent Types**: Market makers, liquidity takers, and noise traders with configurable behaviors
 - **Deterministic Simulations**: Seeded random number generation for reproducible results
@@ -34,11 +35,28 @@ A production-grade **Market Microstructure Simulator** with a high-performance C
 
 ## 🏃‍♂️ Quick Start
 
+### Web Dashboard (NEW!)
+
+```bash
+# Clone the repository
+git clone https://github.com/TanmayRanaware/market-microstructure-simulator.git
+cd market-microstructure-simulator
+
+# Start the interactive web dashboard
+./start_dashboard.sh
+
+# Or manually:
+cd dashboard
+python3 app.py
+```
+
+Then open your browser to **http://localhost:5000** for the interactive dashboard!
+
 ### Docker (Recommended)
 
 ```bash
 # Clone the repository
-git clone https://github.com/example/market-microstructure-simulator.git
+git clone https://github.com/TanmayRanaware/market-microstructure-simulator.git
 cd market-microstructure-simulator
 
 # Build and run with Docker

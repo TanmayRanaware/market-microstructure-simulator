@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Microstructure Simulator Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .dashboard-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            border: none;
+        }
+        
+        .metric-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .chart-container {
+            height: 400px;
+            margin: 20px 0;
+        }
+        
+        .simulation-controls {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            border-radius: 10px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-running {
+            background-color: #28a745;
+            animation: pulse 1s infinite;
+        }
+        
+        .status-stopped {
+            background-color: #dc3545;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .orderbook-table {
+            font-size: 0.9rem;
+        }
+        
+        .bid-row {
+            background-color: rgba(40, 167, 69, 0.1);
+        }
+        
+        .ask-row {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="text-center mb-4">
+                        <h1 class="text-white">
+                            <i class="fas fa-chart-line"></i>
+                            Market Microstructure Simulator
+                        </h1>
+                        <p class="text-white-50">Real-time Market Simulation & Analysis Dashboard</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simulation Controls -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-play-circle"></i>
+                                Simulation Controls
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="simulation-controls">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Simulation Steps</label>
+                                                <input type="number" id="steps" class="form-control" value="10000" min="1000" max="1000000">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Random Seed</label>
+                                                <input type="number" id="seed" class="form-control" value="42" min="1" max="999999">
+                                            </div>
+                                        </div>
+                                        <div class="row mt-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Market Maker Spread</label>
+                                                <input type="number" id="maker_spread" class="form-control" value="2" min="1" max="10">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Taker Intensity</label>
+                                                <input type="number" id="taker_intensity" class="form-control" value="0.8" min="0.1" max="5.0" step="0.1">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Noise Intensity</label>
+                                                <input type="number" id="noise_intensity" class="form-control" value="1.5" min="0.1" max="5.0" step="0.1">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex flex-column">
+                                        <button id="runSimulation" class="btn btn-success btn-lg mb-3">
+                                            <i class="fas fa-play"></i>
+                                            Run Simulation
+                                        </button>
+                                        <button id="stopSimulation" class="btn btn-danger btn-lg mb-3" disabled>
+                                            <i class="fas fa-stop"></i>
+                                            Stop Simulation
+                                        </button>
+                                        <div class="mt-3">
+                                            <span id="simulationStatus" class="status-indicator status-stopped"></span>
+                                            <span id="statusText">Stopped</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="metric-value" id="eventsPerSecond">0</div>
+                        <div class="metric-label">Events/Second</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="metric-value" id="totalEvents">0</div>
+                        <div class="metric-label">Total Events</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="metric-value" id="totalTrades">0</div>
+                        <div class="metric-label">Total Trades</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="metric-value" id="executionTime">0</div>
+                        <div class="metric-label">Execution Time (ms)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-area"></i>
+                                Market Data
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="priceChart" class="chart-container"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-layer-group"></i>
+                                Order Book
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm orderbook-table">
+                                <thead>
+                                    <tr>
+                                        <th>Side</th>
+                                        <th>Price</th>
+                                        <th>Quantity</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orderbookTable">
+                                </tbody>
+                            </table>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    Last Trade: <span id="lastTrade"></span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Performance -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-robot"></i>
+                                Agent Performance
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="agentChart" class="chart-container"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-terminal"></i>
+                                Simulation Logs
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="simulationLogs" class="log-container">
+                                <div>Ready to run simulation...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let updateInterval;
+        
+        $(document).ready(function() {
+            loadCharts();
+            loadOrderBook();
+            updateMetrics();
+            
+            $('#runSimulation').click(function() {
+                runSimulation();
+            });
+            
+            $('#stopSimulation').click(function() {
+                stopSimulation();
+            });
+            
+            // Auto-refresh every 2 seconds
+            updateInterval = setInterval(updateStatus, 2000);
+        });
+        
+        function runSimulation() {
+            const config = {
+                steps: parseInt($('#steps').val()),
+                seed: parseInt($('#seed').val()),
+                maker_spread: parseInt($('#maker_spread').val()),
+                maker_quantity: 50,
+                taker_intensity: parseFloat($('#taker_intensity').val()),
+                taker_quantity_mean: 40,
+                noise_intensity: parseFloat($('#noise_intensity').val()),
+                noise_quantity_mean: 30
+            };
+            
+            $.ajax({
+                url: '/api/simulate',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(config),
+                success: function(response) {
+                    $('#runSimulation').prop('disabled', true);
+                    $('#stopSimulation').prop('disabled', false);
+                    $('#statusText').text('Running');
+                    $('#simulationStatus').removeClass('status-stopped').addClass('status-running');
+                },
+                error: function(xhr) {
+                    alert('Error starting simulation: ' + xhr.responseJSON.error);
+                }
+            });
+        }
+        
+        function stopSimulation() {
+            $.ajax({
+                url: '/api/stop',
+                method: 'POST',
+                success: function(response) {
+                    $('#runSimulation').prop('disabled', false);
+                    $('#stopSimulation').prop('disabled', true);
+                    $('#statusText').text('Stopped');
+                    $('#simulationStatus').removeClass('status-running').addClass('status-stopped');
+                }
+            });
+        }
+        
+        function updateStatus() {
+            $.get('/api/status', function(data) {
+                if (data.running) {
+                    $('#statusText').text('Running');
+                    $('#simulationStatus').removeClass('status-stopped').addClass('status-running');
+                } else {
+                    $('#statusText').text('Stopped');
+                    $('#simulationStatus').removeClass('status-running').addClass('status-stopped');
+                    $('#runSimulation').prop('disabled', false);
+                    $('#stopSimulation').prop('disabled', true);
+                }
+                
+                if (data.results && Object.keys(data.results).length > 0) {
+                    updateMetrics(data.results);
+                }
+                
+                if (data.logs && data.logs.length > 0) {
+                    updateLogs(data.logs);
+                }
+            });
+        }
+        
+        function updateMetrics(results = null) {
+            if (results) {
+                $('#eventsPerSecond').text(results.events_per_second.toLocaleString());
+                $('#totalEvents').text(results.events_processed.toLocaleString());
+                $('#totalTrades').text(results.trades.toLocaleString());
+                $('#executionTime').text(results.execution_time_ms.toFixed(2));
+            } else {
+                // Load performance metrics
+                $.get('/api/performance', function(data) {
+                    $('#eventsPerSecond').text(data.events_per_second.toLocaleString());
+                });
+            }
+        }
+        
+        function updateLogs(logs) {
+            const logContainer = $('#simulationLogs');
+            logContainer.empty();
+            logs.forEach(log => {
+                logContainer.append('<div>' + log + '</div>');
+            });
+            logContainer.scrollTop(logContainer[0].scrollHeight);
+        }
+        
+        function loadCharts() {
+            $.get('/api/charts', function(data) {
+                Plotly.newPlot('priceChart', data.price_spread.data, data.price_spread.layout, {responsive: true});
+                Plotly.newPlot('agentChart', data.volume.data, data.volume.layout, {responsive: true});
+            });
+        }
+        
+        function loadOrderBook() {
+            $.get('/api/orderbook', function(data) {
+                const tbody = $('#orderbookTable');
+                tbody.empty();
+                
+                // Add asks (reverse order for display)
+                data.asks.reverse().forEach(order => {
+                    tbody.append(`
+                        <tr class="ask-row">
+                            <td>ASK</td>
+                            <td>${order.price}</td>
+                            <td>${order.quantity}</td>
+                        </tr>
+                    `);
+                });
+                
+                // Add bids
+                data.bids.forEach(order => {
+                    tbody.append(`
+                        <tr class="bid-row">
+                            <td>BID</td>
+                            <td>${order.price}</td>
+                            <td>${order.quantity}</td>
+                        </tr>
+                    `);
+                });
+                
+                $('#lastTrade').text(`${data.last_trade.price} @ ${data.last_trade.quantity}`);
+            });
+        }
+        
+        // Refresh order book every 5 seconds
+        setInterval(loadOrderBook, 5000);
+    </script>
+</body>
+</html>
