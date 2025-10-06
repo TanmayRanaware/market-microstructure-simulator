@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  market-simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: market-microstructure-simulator:latest
+    container_name: mms-simulator
+    volumes:
+      - ./output:/app/output
+      - ./data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - MMS_LOG_LEVEL=INFO
+    ports:
+      - "8888:8888"  # For Jupyter notebooks if needed
+    command: ["python3", "/usr/local/bin/run_sim.py", "--steps", "100000", "--seed", "42"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import mms; print('Health check passed')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Development service with live code mounting
+  mms-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder  # Use builder stage for development
+    image: market-microstructure-simulator:dev
+    container_name: mms-dev
+    volumes:
+      - .:/app
+      - ./output:/app/output
+    environment:
+      - PYTHONPATH=/app/python
+      - MMS_LOG_LEVEL=DEBUG
+    working_dir: /app
+    command: ["bash", "-c", "make dev-setup && bash"]
+    stdin_open: true
+    tty: true
+    profiles:
+      - dev
+
+  # Jupyter notebook service
+  mms-jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: market-microstructure-simulator:jupyter
+    container_name: mms-jupyter
+    volumes:
+      - .:/app
+      - ./notebooks:/app/notebooks
+      - ./output:/app/output
+    environment:
+      - PYTHONPATH=/app/python
+      - JUPYTER_ENABLE_LAB=yes
+    ports:
+      - "8888:8888"
+    command: ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
+    profiles:
+      - jupyter
+
+  # Testing service
+  mms-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: market-microstructure-simulator:test
+    container_name: mms-test
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app/python
+    working_dir: /app
+    command: ["bash", "-c", "make test"]
+    profiles:
+      - test
+
+  # Benchmark service
+  mms-benchmark:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: market-microstructure-simulator:benchmark
+    container_name: mms-benchmark
+    volumes:
+      - ./output:/app/output
+    environment:
+      - PYTHONPATH=/app
+    command: ["python3", "/usr/local/bin/run_sim.py", "--benchmark", "--steps", "100000", "--iterations", "5"]
+    profiles:
+      - benchmark
+
+networks:
+  default:
+    name: mms-network

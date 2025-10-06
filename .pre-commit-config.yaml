@@ -1,0 +1,65 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: check-ast
+
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=88]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=88, --extend-ignore=E203]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.3.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-all]
+        args: [--ignore-missing-imports]
+
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v16.0.2
+    hooks:
+      - id: clang-format
+        args: [--style=file, --fallback-style=llvm]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.4
+    hooks:
+      - id: codespell
+        args: [--skip="*.pyc", --skip="*.pyo"]
+
+  - repo: local
+    hooks:
+      - id: cmake-format
+        name: cmake-format
+        entry: cmake-format
+        language: system
+        files: \.cmake$|CMakeLists\.txt$
+        args: [--in-place]
+
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck
+        language: system
+        files: \.sh$
+
+      - id: check-cmake
+        name: check-cmake
+        entry: bash
+        language: system
+        files: CMakeLists\.txt$
+        args: [-c, 'cd "$(dirname "$1")" && cmake -S . -B build.check']
